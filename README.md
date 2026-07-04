@@ -1,3 +1,410 @@
+**Lecture 3:**
+# Backend Notes (Exactly from the Video)
+
+## What is a Backend?
+
+* A backend is a **computer** that listens for requests.
+* It can listen for:
+
+  * HTTP requests
+  * WebSocket requests
+  * gRPC requests
+  * Other types of requests
+* It listens on an **open port** (for example 80 or 443) that is accessible over the Internet.
+* Clients (browsers, apps, or other frontends) connect to the backend.
+* Clients can:
+
+  * Send data to the backend.
+  * Receive data from the backend.
+* It is called a **server** because it **serves** content.
+* The content served can be:
+
+  * Images
+  * JavaScript files
+  * HTML files
+  * JSON
+* The backend also accepts data sent by clients.
+
+---
+
+# How Backends Work
+
+### Example Setup
+
+The backend server is deployed on an **AWS EC2 instance**.
+
+When the browser sends a request:
+
+```
+Browser
+    ↓
+Backend Server
+    ↓
+Response
+```
+
+The browser receives the response.
+
+---
+
+## Request Flow
+
+### 1. Browser
+
+The request starts from the browser.
+
+---
+
+### 2. Domain Name
+
+The browser first uses the **domain name**.
+
+Example:
+
+```
+backend-demo.domain.com
+```
+
+---
+
+### 3. DNS Server
+
+The request goes to the **DNS server**.
+
+The DNS server contains different DNS records.
+
+Two records mentioned are:
+
+* **A Record**
+
+  * Points to an IP address.
+
+* **CNAME Record**
+
+  * Points to another domain or subdomain.
+
+---
+
+### 4. A Record
+
+The backend subdomain has an **A Record**.
+
+```
+backend-demo
+      ↓
+Public IP Address
+```
+
+The IP address points to the AWS EC2 instance.
+
+---
+
+### 5. AWS EC2 Instance
+
+The request reaches the EC2 instance using the public IP address.
+
+---
+
+### 6. Firewall (Security Group)
+
+Before entering the EC2 instance, the request passes through the AWS firewall.
+
+The firewall decides which ports are allowed.
+
+The video mentions allowing:
+
+* SSH port
+* HTTP (80)
+* HTTPS (443)
+
+If HTTP or HTTPS ports are **not allowed**, AWS blocks the request before it reaches the server.
+
+---
+
+### 7. Reverse Proxy (Nginx)
+
+After passing the firewall, the request reaches **Nginx**.
+
+The video describes Nginx as:
+
+> A server that sits in front of other servers.
+
+Purpose:
+
+* Manage redirects
+* Manage configurations from one place
+
+---
+
+### Nginx Configuration
+
+Nginx:
+
+* Listens on Port 80.
+* Redirects traffic to HTTPS (443).
+* Uses the configured domain name.
+* Forwards requests to:
+
+```
+localhost:3001
+```
+
+This is where the Node.js backend is running.
+
+---
+
+### 8. Node Server
+
+The backend server is a **Node.js server**.
+
+It is managed using **PM2**.
+
+The video shows two running processes:
+
+* Frontend
+* Backend
+
+The backend listens on:
+
+```
+localhost:3001
+```
+
+Calling:
+
+```
+localhost:3001/users
+```
+
+returns the same response.
+
+---
+
+# Complete Backend Flow
+
+```
+Browser
+      ↓
+DNS Server
+      ↓
+AWS Public IP
+      ↓
+AWS Firewall
+      ↓
+EC2 Instance
+      ↓
+Nginx
+      ↓
+localhost:3001
+(Node.js Backend)
+```
+
+---
+
+# Why Do We Need Backends?
+
+Example:
+
+Instagram Like Button
+
+When you press Like:
+
+1. The app sends a request to the server.
+2. The server identifies who performed the action.
+3. The server saves the like.
+4. The server identifies whose post was liked.
+5. The server triggers a notification.
+6. The friend receives the notification.
+
+The backend stores information for **all users**, while each frontend only shows information relevant to the current user.
+
+---
+
+# Main Responsibility of a Backend
+
+The speaker summarizes the backend's responsibility in one word:
+
+**Data**
+
+Backend is responsible for:
+
+* Fetching data
+* Receiving data
+* Persisting (saving) data
+* Performing actions involving data
+
+---
+
+# How Frontends Work
+
+The frontend is deployed on the same AWS EC2 instance.
+
+When the browser loads the frontend:
+
+1. It requests the domain.
+2. It first receives an HTML document.
+3. Then it requests:
+
+   * JavaScript files
+   * CSS files
+   * Images
+   * Fonts
+
+Each resource is fetched separately.
+
+---
+
+## Frontend Request Flow
+
+The flow is almost the same:
+
+```
+Browser
+      ↓
+DNS
+      ↓
+AWS EC2
+      ↓
+Firewall
+      ↓
+Nginx
+      ↓
+localhost:3000
+(Next.js Frontend)
+```
+
+The only difference is that Nginx forwards requests to **localhost:3000** instead of **localhost:3001**.
+
+---
+
+## Browser Rendering Process
+
+After receiving the HTML:
+
+* Browser downloads CSS.
+* Browser downloads JavaScript.
+* Browser downloads fonts.
+* Browser applies styles.
+* Browser runs JavaScript.
+* JavaScript adds event listeners.
+* Buttons and interactions begin working.
+
+---
+
+# Important Difference
+
+### Backend
+
+* Request is sent to the server.
+* Server executes the code.
+* Server sends back the result.
+
+### Frontend
+
+* Server sends the code.
+* Browser executes the code on the user's machine.
+
+---
+
+# Browser Sandbox
+
+Browsers execute JavaScript inside a **sandbox**.
+
+This means JavaScript has limited access.
+
+Browser JavaScript can access:
+
+* DOM
+* Local Storage
+* Cookies
+* Browser APIs
+
+Browser JavaScript cannot freely access the operating system.
+
+---
+
+# CORS
+
+The speaker introduces **CORS**.
+
+It is described as:
+
+* A browser security policy.
+* It prevents JavaScript from calling APIs on different domains unless proper headers are provided.
+
+A detailed explanation is left for a later video.
+
+---
+
+# Why Can't We Put Backend Logic in the Frontend?
+
+The speaker gives four reasons.
+
+### 1. Security
+
+Browsers are highly restricted.
+
+Backends often need access to:
+
+* File system
+* Environment variables
+* Log files
+
+Browsers do not allow this.
+
+---
+
+### 2. External APIs
+
+Browsers cannot freely call external APIs.
+
+They are restricted by CORS.
+
+Backend servers do not have this limitation.
+
+---
+
+### 3. Databases
+
+Backend servers use native database drivers.
+
+Examples mentioned:
+
+* PostgreSQL (`pg`)
+* MongoDB
+
+Backend servers maintain **connection pools**.
+
+This avoids creating and destroying database connections for every request.
+
+Browsers cannot maintain these persistent database connections.
+
+If every browser connected directly to the database, the database would become overwhelmed.
+
+---
+
+### 4. Computing Power
+
+Frontend applications run on many different devices.
+
+Some devices may have:
+
+* Low RAM
+* Slow processors
+
+Heavy business logic could slow down or crash the application.
+
+Backend servers can be upgraded with more:
+
+* CPU
+* Memory
+
+making them better suited for heavy processing.
+
+---
+
+
+
 **Lecture 11:**
 ### *1. What is REST? (History & Definition)*
 *   *The Origin:* In the 1990s, Tim Berners-Lee invented the World Wide Web. However, as it grew exponentially, it faced a massive scalability crisis. In 2000, Roy Fielding proposed a standardized architectural style to solve this, which he named **REST (Representational State Transfer)**.
