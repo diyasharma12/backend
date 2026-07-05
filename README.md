@@ -1,4 +1,4 @@
-**Lecture 3:**
+## **Lecture 4:**
 # Backend Notes (Exactly from the Video)
 
 ## What is a Backend?
@@ -403,7 +403,7 @@ making them better suited for heavy processing.
 
 ---
 
- ** 5. Understanding HTTP for backend engineers, where it all starts **
+ #### ** 5. Understanding HTTP for backend engineers, where it all starts **
 
 ### *1. Core Principles of HTTP*
 HTTP (Hypertext Transfer Protocol) is an application-layer protocol (Layer 7 in the OSI model) used by clients and servers to communicate. It is built on two fundamental ideas:
@@ -500,7 +500,251 @@ Clients and servers can negotiate the best format to exchange data.
 
 ------- 
 
-**Lecture 11:**
+*6. What is Routing in Backend? How Requests Find Their Way Home*
+
+### *1. What is Routing?*
+*   *The "What" vs. The "Where":* In a backend system, HTTP methods (like GET, POST, DELETE) express the what or the intent of a request (e.g., fetching or adding data). Routing expresses the *where*—the specific resource or destination you want to apply that action to.
+*   *Definition:* Routing is the process of mapping a combination of an HTTP method and a URL path to a specific server-side Handler (a set of instructions or business logic). 
+*   *Uniqueness:* The server concatenates the HTTP method and the route to form a unique key. For example, a `GET` request to `/api/books` and a `POST` request to `/api/books` will trigger completely different logic in the server without clashing.
+
+### *2. Types of Routes*
+There are two primary ways to structure a route path:
+
+*   *Static Routes:* These are constant strings that do not contain any variable parameters. For example, `/api/books` will always stay consistent and point to the same general resource.
+*   *Dynamic Routes:* These include variable slots within the URL that the server can extract as data. In most backend frameworks (like Node.js, Python, or Go), these are denoted by a colon, such as `/api/users/:id`. If a client requests `/api/users/123`, the server extracts "123" as the ID to fetch that specific user's data.
+
+### *3. Path Parameters vs. Query Parameters*
+When sending data through a URL, backend engineers use two distinct types of parameters:
+
+*   *Path Parameters (Route Parameters):* These are the variables placed directly inside the route's path, right after a forward slash `/` (e.g., the `123` in `/api/users/123`). They are used to express **semantic meaning**, specifically identifying a unique resource.
+*   *Query Parameters:* Because `GET` requests do not have a data body, query parameters are used to send key-value pairs of metadata to the server. 
+    *   *Syntax:* They are attached to the end of the route after a question mark `?` (e.g., `/api/search?query=some+value`).
+    *   *Use Cases:* They are heavily used for *pagination* (e.g., `page=2&limit=20`), filtering user-defined values, or determining sorting orders (ascending/descending).
+
+### *4. Nested Routing*
+Nested routing is a standard REST API practice used to express a hierarchy between different resources. 
+*   *Semantic Hierarchy:* By nesting paths, you create a highly readable, semantic expression of what data you want. 
+*   *Example Workflow:*
+    *   `/api/users`: Fetches a list of all users.
+    *   `/api/users/123`: Goes one level deep to fetch a specific user.
+    *   `/api/users/123/posts`: Goes another level deep to fetch all posts created by user 123.
+    *   `/api/users/123/posts/456`: Fetches one highly specific post (ID 456) belonging to that specific user.
+
+### *5. Route Versioning and Deprecation*
+As applications grow, business requirements change, which might require you to completely alter the format of the data your API returns (e.g., switching the key `name` to `title`). 
+*   *The Problem:* If you change the response format on a live route, you will break the frontend application (like an iOS or React app) currently relying on it.
+*   *The Solution (Versioning):* Engineers add version numbers to routes, such as `/api/v1/products` and `/api/v2/products`. 
+*   *Deprecation:* This allows the server to simultaneously support both the old and new data structures. It provides frontend engineers a safe window of time to migrate their code to `v2` before the backend team officially deprecates and removes `v1`. 
+
+### *6. Catch-All Routes*
+*   *Purpose:* A catch-all route acts as a safety net for invalid requests. 
+*   *How it Works:* It is placed at the very end of the server's routing logic, often using a wildcard syntax like `/*`. If a request trickles down through all the previous route matching algorithms without finding a match, it hits the catch-all.
+*   *Benefit:* Instead of the server defaulting to a broken or null response, the catch-all handler cleanly returns a user-friendly "Route Not Found" (404) message to the client.
+
+
+*7. Serialization and Deserialization for backend engineers*
+
+### *1. The Core Problem: Language Barriers in Networking*
+*   *Different Environments:* A typical web application consists of a client (like a frontend built with JavaScript) and a server (a backend built with a language like Rust). 
+*   *Incompatible Data Types:* These languages handle data very differently. For instance, JavaScript is highly dynamic and not compiled, whereas Rust is compiled and has extremely strict data types. 
+*   *The Challenge:* When a JavaScript client sends an internal data object over the internet to a Rust server, the Rust server cannot natively understand or parse JavaScript data structures. To communicate effectively over the network, they need a universal language.
+
+### *2. What is Serialization and Deserialization?*
+*   *The Solution:* Both the client and the server agree on a single, common standard format for transmitting data.
+*   *Serialization:* The process of converting native data (like a JavaScript object or a Rust struct) into this common, standard format before sending it over the network.
+*   *Deserialization:* The exact reverse process. When a machine receives the standard format, it parses and converts it back into its own native data type so it can perform business logic.
+*   *Purpose:* This makes data transmission completely *language-agnostic* and **domain-agnostic**, meaning any machine can talk to any other machine regardless of the underlying technologies they use.
+
+### *3. Types of Serialization Standards*
+There are many formats used for serialization, which generally fall into two categories:
+1.  *Text-Based Formats:* These are human-readable. Examples include JSON, YAML, and XML. 
+2.  *Binary Formats:* These are compiled into raw binary for highly efficient, compact transmission. Examples include Protobuf and Avro. 
+
+### *4. Deep Dive into JSON (The Industry Standard)*
+For traditional HTTP REST API communication, *JSON (JavaScript Object Notation)* is the most popular serialization standard, used roughly 80% of the time. 
+*   *Use Cases:* Beyond HTTP transmission, JSON is heavily used for application logging and configuration files. 
+*   *Characteristics:* Despite its name, it is not limited to JavaScript and is heavily praised for being entirely human-readable. 
+*   *Strict Syntax Rules:*
+    *   A JSON object must start with an opening curly brace `{` and end with a closing curly brace `}`.
+    *   *Keys:* All keys must be strings and must be wrapped in double quotes (e.g., `"name":`).
+    *   *Values:* Values are limited to fundamental data types: strings, numbers, booleans, arrays, or nested JSON objects.
+
+### *5. The Backend Engineer's Mental Model (OSI Layers)*
+When data travels over the internet, it passes through many complex network layers (the OSI model).
+*   *The Abstraction:* As a backend engineer, you only need to focus on the **Application Layer**. You can safely assume that your client serializes data into JSON and sends it off.
+*   *The Intermediary Steps:* Under the hood, the network converts that JSON into data frames, IP packets, and eventually physical bits (`0`s and `1`s) transmitted via electrical or optical signals. 
+*   *The Receiving End:* Before your server ever touches the incoming data, the network reassembles those `0`s and `1`s back into the exact JSON text format the client sent. You do not have to worry about the intermediate network conversions; you only deal with the JSON.
+
+### *6. The Complete End-to-End Workflow*
+Here is the step-by-step flow of how this works in a real-world scenario:
+1.  *Client Prepares Data:* The frontend JavaScript app gathers user input.
+2.  *Serialization (Client):* The client converts its internal data into a JSON string and attaches it to the HTTP request body.
+3.  *Transmission:* The data is broken down into bits, travels across the internet, and reaches the backend server.
+4.  *Deserialization (Server):* The server receives the JSON string and parses it into its own native language format (e.g., a Rust struct).
+5.  *Processing:* The server executes its business logic (like saving data to a database).
+6.  *Serialization (Server):* The server packages its response, converts it back into JSON format, and sends the HTTP response over the internet.
+7.  *Deserialization (Client):* The frontend receives the JSON response, converts it back into a JavaScript object, and uses it to update the user interfa
+
+
+
+#### *8. Authentication and authorization for backend engineers*
+
+### *1. Core Definitions*
+*   *Authentication (The "Who"):* The mechanism used to assign an identity to a subject. It answers the question, *"Who are you in a given context?"*.
+*   *Authorization (The "What"):* The process of determining a user's permissions and capabilities. It answers the question, *"What can you do in this context?"*.
+
+### *2. The Evolution of Authentication*
+Understanding how authentication evolved helps explain modern systems:
+*   *Pre-Industrial (Implicit Trust):* Relied on human contextual trust, like handshakes or a village elder vouching for someone.
+*   *Medieval Era (Explicit Authentication):* Used wax seals as physical tokens of identity based on *possession*. This era saw the first "bypass attacks" via forgery.
+*   *Industrial Revolution:* Telegraph operators used pre-agreed passphrases, shifting the paradigm to *something you know*.
+*   *1960s (Mainframes):* MIT introduced passwords for multi-user systems. Initially stored in plain text, an incident where the password file was printed led to the invention of *hashing* (transforming passwords into secure, irreversible, fixed-length strings).
+*   *1970s:* The invention of Diffie-Hellman introduced asymmetric cryptography, forming the backbone of modern Public Key Infrastructure (PKI) and early ticket-based authentication (Kerberos).
+*   *1990s (MFA):* To combat brute force attacks, Multi-Factor Authentication (MFA) was introduced, combining three principles: something you know (password), something you have (OTP), and something you are (biometrics).
+*   *Future Trends:* Post-Quantum Cryptography (to secure data against quantum computers), decentralized identity (blockchain), and behavioral biometrics.
+
+### *3. Three Core Components of Modern Authentication*
+#### *A. Sessions*
+*   *The Problem:* HTTP is fundamentally a stateless protocol, meaning it remembers nothing about past requests. Modern web apps (like e-commerce sites) need stateful memory.
+*   *The Solution:* The server creates a unique *Session ID* upon login, storing the user's data alongside this ID in a persistent, fast in-memory store like Redis. The Session ID is sent to the client and included in all future requests, giving the server memory.
+
+#### *B. JWTs (JSON Web Tokens)*
+*   *The Problem:* As apps scaled globally, storing and synchronizing millions of sessions across distributed servers caused latency and high storage costs.
+*   *The Solution:* JWTs are a *stateless* mechanism that offloads storage from the server. 
+*   *Structure:* They contain three base64-encoded parts:
+    1.  *Header:* Metadata like the signing algorithm.
+    2.  *Payload:* Contains "claims" such as the user ID (`sub`), issued at time (`iat`), and roles.
+    3.  *Signature:* Verified using a secret key held only by the server to ensure the token hasn't been tampered with.
+
+#### *C. Cookies*
+*   *Definition:* A mechanism allowing servers to store small pieces of information directly in the user's browser.
+*   *Workflow:* The server sets an `HTTP-only` cookie (so JavaScript cannot access it) containing the Auth Token. The browser then automatically attaches this cookie to every subsequent request sent to that specific server.
+
+### *4. Major Types of Authentication*
+Backend engineers typically use four main workflows:
+
+1.  *Stateful Authentication:*
+    *   *Workflow:* User logs in $\rightarrow$ Server stores session in Redis $\rightarrow$ Server sends Session ID via cookie $\rightarrow$ Client sends cookie on next request $\rightarrow$ Server looks up ID in Redis.
+    *   *Pros/Cons:* Offers centralized control and easy token revocation, but has limited scalability and higher operational complexity. Ideal for standard web applications.
+2.  *Stateless Authentication:*
+    *   *Workflow:* User logs in $\rightarrow$ Server signs a JWT with a secret key $\rightarrow$ Client sends JWT in the `Authorization` header on next request $\rightarrow$ Server cryptographically verifies the token without a database lookup.
+    *   *Pros/Cons:* Highly scalable and portable, but revoking access before the token expires is extremely complex without forcing all users to log out by changing the secret key.
+3.  *API Key-Based Authentication:*
+    *   *Purpose:* Designed for programmatic, *machine-to-machine* communication (e.g., your backend server requesting data from OpenAI's server).
+    *   *Workflow:* A user generates a cryptographically random string via a UI. Their server then includes this key in automated requests to bypass human visual interactions (like login forms).
+4.  *OAuth 2.0 & OpenID Connect (OIDC):*
+    *   *The Delegation Problem:* Users historically shared passwords so one app could access resources on another (e.g., a travel app scanning Gmail). This was a massive security risk and made revocation impossible.
+    *   *OAuth 2.0:* Solved this by allowing a client app to request a specific *token* with limited permissions (e.g., read-only access to contacts) from an Authorization Server. This handles *authorization*.
+    *   *OpenID Connect (OIDC):* Because OAuth didn't verify identity*, OIDC was built on top. It introduced the **ID Token* (a JWT), which securely shares user profile data (like email and name). This powers the "Sign in with Google" features we use today.
+
+### *5. Authorization: Role-Based Access Control (RBAC)*
+*   *The Concept:* Not all users should have the same capabilities (e.g., standard users vs. admins accessing a "dead zone" of deleted files). 
+*   *How RBAC Works:* Users are assigned specific roles (User, Admin, Moderator). Each role maps to strict resource permissions (Read, Write, Delete).
+*   *Execution:* During the request cycle, the server deduces the user's role from their token. If an unauthorized user attempts an action, the server rejects it with a `403 Forbidden` status.
+
+### *6. Critical Security Best Practices*
+*   *Use Generic Error Messages:* Never respond with "User not found" or "Incorrect password." Attackers use these friendly messages to deduce valid usernames and increase their attack surface. Always use a generic response like *"Authentication failed"*.
+*   *Prevent Timing Attacks:* Attackers can measure the time it takes for a server to respond. If a username is invalid, the server fails instantly. If the username is valid but the password is wrong, the server takes longer because it has to run the heavy password-hashing algorithm. 
+    *   Solution: Backend engineers must equalize response times using *constant-time operations* or by *simulating a fake response delay* (e.g., a standard 200ms delay) so attackers cannot measure the difference.
+ 
+------ 
+##*9. Validations and transformations for backend engineers*
+
+### *1. What are Validations and Transformations?*
+*   *Purpose:* The primary goal of validations and transformations is to ensure **data integrity and security**. They guarantee that any data entering your server matches the exact format, type, and logical constraints your application requires.
+*   *Scope:* This applies to all forms of incoming client data, including JSON body payloads, query parameters, path parameters, and headers.
+
+### *2. Where Do They Fit in Backend Architecture?*
+To understand where validations happen, you must understand standard backend layering:
+*   *Repository Layer (Bottom):* Handles direct database connections and queries (e.g., inserting or deleting rows in Postgres or Redis).
+*   *Service Layer (Middle):* Executes the core "business logic" (e.g., calling database methods, sending emails, processing payments).
+*   *Controller Layer (Top/Entry Point):* Handles HTTP-specific logic (receiving requests, reading data, and sending status codes).
+*   *The Validation Execution Point:* Validations and transformations occur entirely in the *Controller Layer**, immediately after a URL route is matched, but **before* any business logic or service/database methods are called. 
+
+### *3. Why is Backend Validation Critical?*
+If you do not validate data at the entry point, your server can break or enter an unexpected state. 
+*   *The 500 Error Problem:* Imagine your database (like Postgres) expects a `name` field to be a text string. If a client sends the number `0` instead, and you don't validate it, the data will travel all the way down to the database. The database will reject the type mismatch and crash the operation, throwing a `500 Internal Server Error`.
+*   *The 400 Bad Request Solution:* By using a validation pipeline at the entry point, the server catches the mistake instantly. It prevents the database call and safely returns a `400 Bad Request` to the client, explaining exactly what they did wrong (e.g., "Name must be a string").
+
+### *4. How the Validation Pipeline Works (Step-by-Step)*
+A robust validation middleware processes data in layers:
+1.  *Existence Check:* Does the expected field (e.g., `name`) exist in the JSON payload? If not, throw a "Field is required" error.
+2.  *Type Check:* If it exists, is it the correct data type? (e.g., Is it a string, or did the client send an array or boolean?).
+3.  *Constraint Check:* If the type is correct, does it meet specific restrictions? (e.g., Is the string length between 5 and 100 characters?).
+
+### *5. The Four Main Types of Validation*
+1.  *Type Validation:* Validating basic programming data types (strings, numbers, booleans, arrays). This can also be applied recursively, such as checking that an incoming array only contains string elements.
+2.  *Syntactic Validation:* Checking if a provided string strictly follows a specific structural format or pattern. Examples include validating standard email formats (using `@` and domains), phone numbers, or specific date structures (YYYY-MM-DD).
+3.  *Semantic Validation:* Checking if the provided data makes *logical sense* in the real world, even if the type and syntax are correct. For example, a "Date of Birth" cannot be a date in the future, and a user's age cannot logically be 430 years old.
+4.  *Complex (Dependent) Validation:* Validating fields based on the context of other fields. Examples include ensuring a "Password Confirmation" string perfectly matches the "Password" string, or requiring a "Partner Name" field only if a "Married" boolean is set to true.
+
+### *6. What is Transformation (Type Casting)?*
+*   *Definition:* Transformation is the process of modifying or executing operations on the incoming data to convert it into a desirable format before your service layer uses it.
+*   *Handling Query Parameters:* A classic example is pagination (e.g., `?page=2&limit=20`). When query parameters reach the server, they are **always strings by default**. If your validation strictly expects a number, the request will fail. Transformation "casts" (forces) that string into a number data type so it can pass validation and be processed.
+*   *Data Normalization:* Transformation is also used to clean up data. For example, a server might automatically transform an email payload into all lowercase letters, or inject a `+` symbol before a phone number string, before saving it.
+
+### *7. Frontend vs. Backend Validation (The Golden Rule)*
+A common architectural mistake is assuming that if you have validation on your frontend website, you don't need it on your backend. 
+*   *Frontend Validation is for UX:* Validating inside a web form provides immediate, friendly feedback to the user, enhancing the User Experience (UX).
+*   *Backend Validation is for Security:* Frontend validation can be easily bypassed. Malicious users or developers can interact with your API directly using tools like Postman or Insomnia, skipping the frontend UI entirely. Therefore, backend validation is absolute and mandatory for system security and data integrity.
+
+  
+  -----
+
+
+  ###*10. What are controllers, services, repositories, middlewares and request context?*
+
+### *1. The Backend Architecture Pattern*
+When a client sends an HTTP request to a server, separating the server's code into different components (Controllers, Services, and Repositories) is not strictly mandatory, but it is a vital design pattern. This separation of concerns makes the codebase scalable, maintainable, easier to debug, and easier to add new features.
+
+### *2. The Controller (Handler) Layer*
+The Controller (or Handler) is the entry point for an API route after the routing algorithm matches the URL. Its primary responsibility is managing the flow of data from the client to the server, and back to the client.
+
+*Step-by-Step Workflow of a Controller:*
+1.  *Data Extraction:* The controller receives the HTTP `request` and `response` objects from the underlying programming runtime. It takes the necessary data out of the request (e.g., query parameters for a GET request, or the JSON body for a POST request).
+2.  *Binding (Deserialization):* Because the request travels over the internet as a JSON string, the controller must deserialize it into the programming language's native data format (like a Go struct, a Python dictionary, or a JavaScript object). If this fails, the controller immediately halts and returns a `400 Bad Request`.
+3.  *Validation:* It checks if the incoming data matches the expected format, ensures mandatory fields are present, and prevents malicious payloads.
+4.  *Transformation:* It modifies the data for backend convenience before passing it downstream. For example, if a client doesn't provide an optional "sort" query parameter, the transformation pipeline can inject a default value (like sorting by date).
+5.  *Delegation:* It passes this clean, validated data to the Service Layer.
+6.  *Sending the Response:* Once the Service layer finishes processing, the Controller decides on the appropriate HTTP status code (e.g., `200 Success`, `201 Created`, or error codes like `400`/`500`) and sends the final response back to the client.
+
+### *3. The Service Layer*
+The Service Layer is where the actual business logic and core processing of the API happens.
+*   *Complete HTTP Isolation:* The Service layer should know *absolutely nothing* about HTTP. It should not deal with request/response objects, status codes, or validations. It simply acts as a standard function: it takes data in, processes it, and returns a result.
+*   *Orchestration:* A single service method can do many things. It can orchestrate multiple repository calls, merge different data sets, send emails, or make external API calls.
+
+### *4. The Repository (Database) Layer*
+The Repository layer's sole responsibility is dealing with database operations.
+*   *Workflow:* It takes data from the Service layer, constructs the specific database query (for inserting, filtering, or sorting), and returns the raw database results back to the Service layer.
+*   *Single Responsibility Principle:* A repository method should only do one specific thing and return one type of data. You should not use complex conditional logic inside a repository to make it return either a single book or an array of all books. Instead, you create two distinct repository methods.
+
+### *5. Middlewares*
+Middlewares are functions that execute in the middle of the request lifecycle—between the moment the server receives the request and the moment it hits the final Controller. 
+
+*   *Why use Middlewares?* To avoid duplicating code. Backend apps have common operations (security, logging, parsing) that need to run on hundreds of different API endpoints. Middlewares centralize this logic.
+*   *The `next()` Function:* Middlewares receive the standard `request` and `response` objects, but also a `next` function. Calling `next()` passes the execution to the subsequent middleware or handler in the chain. A middleware can optionally choose to not call `next()` and instead instantly return a response to the client, terminating the request early.
+*   *Execution Order Matters:* The order in which middlewares are arranged is critical because the request flows through them sequentially.
+
+*Common Examples of Middlewares:*
+*   *CORS & Security Headers:* Placed very early in the cycle to check the origin of the request. If the domain is unauthorized, it blocks the request instantly.
+*   *Rate Limiting:* Checks the user's IP address. If they are spamming the server, it instantly returns a `429 Too Many Requests` error to protect server resources.
+*   *Authentication:* Verifies the user's token. If invalid, it returns a `401 Unauthorized` error. If valid, it extracts the user's data and passes it downstream.
+*   *Logging:* Records details about the request (URL path, method, parameters) to the terminal for debugging.
+*   *Global Error Handling:* Usually placed at the *very end* of the middleware chain. It catches any unstructured errors thrown by the controllers or services and formats them into clean, standardized error messages for the client.
+
+### *6. Request Context*
+Request Context is a shared storage mechanism (usually a key-value store) that is strictly limited (scoped) to a single HTTP request.
+*   *Purpose:* Because the request passes through many different isolated function boundaries (multiple middlewares and the controller), Context allows them to share state and data without tightly coupling the system code.
+
+*Common Use Cases for Request Context:*
+1.  *Passing Authentication Data:* When the Authentication middleware validates a token, it extracts the `user_id` and the user's `role` (e.g., admin vs. standard user). It saves this inside the Request Context. Later, when the Controller is ready to save a new record, it pulls the `user_id` directly from the Context. This is crucial for security: you should never trust a `user_id` sent by the client in the JSON payload, as malicious users could spoof it.
+2.  *Request Tracing:* An early middleware can generate a unique ID (UUID) and save it to the Context. As the request travels through different microservices and logs, that specific ID is attached everywhere, allowing engineers to trace the exact path of a bug.
+3.  *Cancellations:* It can be used to store abort signals and timeout deadlines to prevent external service calls from hanging perpetually.
+
+
+----
+
+## **Lecture 11:**
 ### *1. What is REST? (History & Definition)*
 *   *The Origin:* In the 1990s, Tim Berners-Lee invented the World Wide Web. However, as it grew exponentially, it faced a massive scalability crisis. In 2000, Roy Fielding proposed a standardized architectural style to solve this, which he named **REST (Representational State Transfer)**.
 *   *Breaking Down the Name:*
