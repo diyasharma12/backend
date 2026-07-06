@@ -805,3 +805,120 @@ When returning a list of items, an API must be equipped to handle heavy data loa
 *   *Implement "Sane Defaults":* Your server should not crash if a client forgets to send optional data. If a client doesn't pass a pagination limit, default it to `10`. If they don't provide a sort order, default to sorting by `created_at` in `descending` order. If a new organization is created without a status, default it to `active`.
 *   *Total Consistency:* Be ruthlessly consistent. JSON payloads should always use `camelCase`. If an endpoint expects a field called `description`, do not abbreviate it to `desc` in another endpoint. Inconsistencies force other developers to guess, leading to bugs.
 *   *Interactive Documentation:* Always use tools like Swagger/OpenAPI to generate an interactive playground. This acts as both documentation for front-end developers and a testing ground for you.
+## lec 13
+# Caching — System Design Notes
+
+*Based on the chapter list from: https://www.youtube.com/watch?v=estH64OkwxU*
+*Note: I couldn't pull the actual transcript (YouTube blocked automated access), so these notes cover the standard concepts each chapter title refers to. Watch the linked timestamp for the speaker's exact examples/numbers and adjust these notes as needed.*
+
+---
+
+## 1. What is Caching — [1:17](https://www.youtube.com/watch?v=estH64OkwxU&t=77s)
+- Caching = storing a copy of data in a faster-access location so future requests for that data are served quicker.
+- Sits between the client and the "source of truth" (database, origin server, computation).
+- Trade-off: speed vs. freshness/consistency (cached data can become stale).
+
+## 2. Importance of Caching — [1:50](https://www.youtube.com/watch?v=estH64OkwxU&t=110s)
+- Reduces latency (data served from memory/nearby location instead of disk/network round-trip).
+- Reduces load on backend systems (DB, origin servers) — fewer repeated expensive operations.
+- Improves scalability — same infra can serve more users.
+- Saves cost — fewer compute/DB reads, less bandwidth.
+
+## 3. Google Search Example — [5:46](https://www.youtube.com/watch?v=estH64OkwxU&t=346s)
+- Popular/repeated search queries (e.g., "weather today") don't need to be recomputed from scratch every time.
+- Results for common queries can be cached so Google doesn't re-run the full search/ranking pipeline for every identical request.
+- Illustrates caching at the **application/query result** level.
+
+## 4. Netflix (CDN) Example — [12:19](https://www.youtube.com/watch?v=estH64OkwxU&t=739s)
+- Netflix caches video content on **CDN edge servers** close to users geographically.
+- Avoids streaming every request all the way from a central origin server (which would be slow and expensive at scale).
+- Popular shows/movies are pre-positioned on edge nodes near where demand is highest.
+
+## 5. Twitter (X) Trending Topics Example — [17:26](https://www.youtube.com/watch?v=estH64OkwxU&t=1046s)
+- Trending topics are computed periodically (not recalculated on every single page load) and cached.
+- Since trends don't change every millisecond, serving a cached/precomputed version is far cheaper than recalculating in real time for every user.
+
+## 6. Levels of Caching — [19:00](https://www.youtube.com/watch?v=estH64OkwxU&t=1140s)
+Caching happens at multiple layers of the stack:
+1. **Network level** — CDN, DNS caching
+2. **Hardware level** — CPU caches (L1/L2/L3), RAM, disk caching
+3. **Software level** — in-memory key-value stores (Redis, Memcached), application-level caching
+
+## 7. Network Caching: CDN — [26:18](https://www.youtube.com/watch?v=estH64OkwxU&t=1578s)
+- **Content Delivery Network**: a distributed network of servers ("edge servers/PoPs") placed around the world.
+- Static (and sometimes dynamic) content is cached at the edge closest to the user.
+- Reduces latency (shorter physical distance to travel) and reduces load on the origin server.
+- Common providers: Cloudflare, Akamai, AWS CloudFront.
+
+## 8. Network Caching: DNS — [35:01](https://www.youtube.com/watch?v=estH64OkwxU&t=2101s)
+- DNS resolves domain names → IP addresses.
+- Without caching, every request would need a full DNS lookup chain (root → TLD → authoritative server) — slow.
+- Browsers, OS, and ISPs cache DNS results (respecting **TTL**) so repeat lookups are near-instant.
+
+## 9. Hardware Level Caching — [41:13](https://www.youtube.com/watch?v=estH64OkwxU&t=2473s)
+- **L1 cache**: smallest, fastest, closest to CPU core (per-core).
+- **L2 cache**: larger, slightly slower, often per-core or shared between a couple cores.
+- **L3 cache**: largest of the three, shared across all cores, slower than L1/L2 but still much faster than RAM.
+- **RAM**: much larger than CPU caches, but slower access than any cache level.
+- **Hard Disk**: largest capacity, persistent, but by far the slowest tier in this hierarchy.
+- General principle: **the faster the storage, the smaller and more expensive it is** — hence the pyramid/hierarchy.
+
+## 10. Software Based Caching (Redis / Memcached) — [42:49](https://www.youtube.com/watch?v=estH64OkwxU&t=2569s)
+- In-memory key-value stores used by applications to cache data explicitly.
+- **Redis**: supports rich data structures (strings, hashes, lists, sets, sorted sets), persistence options, pub/sub.
+- **Memcached**: simpler, purely in-memory key-value store, multi-threaded, good for simple caching needs.
+- Sit between the application and the database.
+
+## 11. Caching Strategies: Lazy Caching & Write Through — [45:18](https://www.youtube.com/watch?v=estH64OkwxU&t=2718s)
+- **Lazy Caching / Cache-Aside**:
+  1. App checks cache first.
+  2. On a **cache miss**, app fetches from DB, then writes result into cache.
+  3. Next request for same data = **cache hit**, served from cache directly.
+  - Pro: only requested data gets cached (efficient use of memory).
+  - Con: first request is always slow (cache miss penalty); cache can go stale if DB changes underneath it.
+- **Write-Through**:
+  1. Every write goes to the cache **and** the database at the same time (synchronously).
+  - Pro: cache is always consistent with the DB.
+  - Con: writes are slower (writing to two places); data that's never read still takes up cache space.
+
+## 12. Eviction Policies — [51:15](https://www.youtube.com/watch?v=estH64OkwxU&t=3075s)
+Cache memory is limited, so old/unneeded data must be evicted:
+- **No Eviction**: cache errors out or rejects new writes once full (used when data must never be silently dropped).
+- **LRU (Least Recently Used)**: evicts the item that hasn't been accessed for the longest time.
+- **LFU (Least Frequently Used)**: evicts the item accessed the fewest number of times.
+- **TTL (Time To Live)**: each entry expires automatically after a set duration, regardless of usage.
+
+## 13. Use Cases for In-Memory Databases (Redis/Memcached) — [51:58](https://www.youtube.com/watch?v=estH64OkwxU&t=3118s)
+Overview of practical applications covered next: database query caching, session storage, API caching, rate limiting.
+
+## 14. Use Case: Database Query Caching — [55:41](https://www.youtube.com/watch?v=estH64OkwxU&t=3341s)
+- Expensive/repeated DB queries (e.g., complex joins, aggregations) are cached so the DB isn't hit every time.
+- Cache key = query (or its hash) + parameters; cache value = query result.
+- Drastically reduces DB load for read-heavy workloads.
+
+## 15. Use Case: Session Storing — [57:01](https://www.youtube.com/watch?v=estH64OkwxU&t=3421s)
+- User session data (login state, cart contents, etc.) stored in Redis/Memcached instead of a traditional DB.
+- Fast read/write access needed on every request.
+- Works well in distributed systems — any server instance can access the shared session store (unlike storing sessions in a single server's local memory).
+
+## 16. Use Case: API Caching — [58:51](https://www.youtube.com/watch?v=estH64OkwxU&t=3531s)
+- Responses from frequently-called APIs (especially expensive or third-party ones) are cached.
+- Reduces redundant external calls, latency, and cost (many third-party APIs charge per call or rate-limit you).
+
+## 17. Use Case: Rate Limiting Mechanism — [~59:xx]
+- In-memory stores are used to track how many requests a user/IP/API key has made in a given time window.
+- Fast increment/read operations (e.g., Redis `INCR` + TTL) make it practical to enforce limits like "100 requests per minute" without hitting a slower persistent DB on every single request.
+
+---
+
+### Quick Summary Table
+
+| Layer | Examples | Key Idea |
+|---|---|---|
+| Network | CDN, DNS | Cache close to the user / avoid repeated lookups |
+| Hardware | L1/L2/L3, RAM, Disk | Speed vs. size trade-off hierarchy |
+| Software | Redis, Memcached | Explicit app-level caching with strategies & eviction policies |
+
+**Strategies:** Cache-Aside (lazy) vs. Write-Through
+**Eviction:** No Eviction / LRU / LFU / TTL
+**Common Use Cases:** DB query caching, session storage, API caching, rate limiting
