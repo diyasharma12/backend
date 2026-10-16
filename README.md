@@ -987,3 +987,54 @@ When building task queues at scale, several technical considerations must be add
 * *Keep Tasks Small and Focused:* A single task should handle a single processing unit. If a task does too much, a failure at the final step forces the whole heavy process to repeat.
 * *Avoid Long-Running Tasks:* Break massive tasks into smaller chunks. Use chained or batch tasks to distribute the workload concurrently.
 * *Set Up Proper Alerting:* Don't wait for users to complain. Set thresholds for queue lengths and worker downtimes so you are alerted immediately if the pipeline stalls.
+
+
+
+## lec 15
+### 1. Introduction: The Search Problem (0:00)
+* *The Challenge:* Traditional relational databases (e.g., PostgreSQL) use `LIKE` queries to perform pattern matching (e.g., `SELECT * FROM products WHERE name LIKE '%laptop%'`).
+* *The Flaw:* This forces the database to perform a full scan of every row and character, which is performant at small scales (e.g., 5,000 items) but collapses at scale (millions of items), causing latency to spike from 50ms to 30 seconds.
+
+### 2. The Librarian Analogy (3:02)
+* *The Analogy:* A relational database is like a librarian who knows where every book is but has a fatal flaw: to find a topic, they must physically check every single book in the library one by one.
+* *Lack of Relevance:* This approach has no concept of "relevance"; it returns results in an arbitrary order, failing to prioritize a book titled Introduction to Machine Learning over one that merely mentions the term on the last page.
+
+### 3. The Information Explosion & Need for Speed (7:08)
+* *The Context:* Around 2005, the rise of the web (Google, Amazon, LinkedIn) meant companies had to process billions of products and web pages.
+* *The Requirement:* With user experience and conversion rates on the line, modern systems require *sub-second latency* (milliseconds), making full-table scans unsustainable.
+
+### 4. The Birth of the Inverted Index (8:48)
+* *The Concept:* Instead of scanning every document, the search is "inverted." The system creates an index of individual words (terms) that points to the documents where they appear.
+* *Efficiency:* When a user searches for "machine learning," the system looks up those terms in the index to instantly identify relevant documents, skipping the need to read entire database records.
+
+### 5. Relevance Scoring in Elasticsearch (12:48)
+* *Scoring:* Specialized search tools rank results by importance. 
+* *Field Boosting:* Logic is applied to determine that a term found in a *title* is more relevant than one found in the body description or page content.
+
+### 6. The BM25 Algorithm & Parameters (16:11)
+* *Definition:* The standard algorithm for ranking documents based on mathematical relevance.
+* *Key Metrics:*
+    * *Term Frequency:* How often a term appears in a single document.
+    * *Document Frequency:* How common/rare the term is across the entire index.
+    * *Document Length:* Normalization to ensure short, focused documents aren't unfairly penalized or long documents over-rewarded.
+    * *Field Boosting:* Custom weighting for specific fields (e.g., giving 'title' matches more weight than 'content' matches).
+
+### 7. Use Cases: Typo Tolerance & Type-ahead (19:07)
+* *Typo Tolerance:* Advanced engines can contextually identify what a user meant despite spelling errors (e.g., searching for "treading" to find "trending").
+* *Type-ahead:* Predictive search interfaces that provide real-time suggestions to users while they are still typing.
+
+### 8. PostgreSQL vs. Elasticsearch (20:51)
+* *Postgres:* A powerful relational database that now supports full-text search features.
+* *Elasticsearch:* Often preferred in organizations that already maintain the *ELK Stack* (Elasticsearch, Logstash, Kibana) for log management, as it is purpose-built for high-speed, complex text retrieval.
+
+### 9. Live Demo: Benchmark Comparison (22:04)
+* *The Test:* Compared a 50,000-record database in Neon (PostgreSQL) vs. an Elasticsearch cloud instance.
+* *Results:* 
+    * *PostgreSQL:* `LIKE` queries took **3 to 7.5 seconds**.
+    * *Elasticsearch:* Returned results in **500ms to 1 second**.
+
+### 10. Conclusion: When to Use Full-Text Search (31:02)
+* *Backend Strategy:* Master database fundamentals and indexing, as these cover 99% of your codebase. 
+* *Usage:* Use dedicated full-text search tools like Elasticsearch when requirements specifically demand high-speed ranking, complex relevance scoring, or typo-tolerant experiences. You do not need to be a math expert on BM25 to get started—leveraging documentation and snippets is sufficient.
+
+##Lec 16
